@@ -187,6 +187,11 @@ dialog::backdrop{background:rgba(8,10,20,.55)}
 .dlg .hint{font-size:12.5px;color:var(--muted);font-weight:400;line-height:1.45}
 .dlg .chk{display:flex;gap:10px;align-items:flex-start;font-size:14px}
 .dlg .chk input{margin-top:4px}
+.sync .sdot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.sync.ok .sdot{background:var(--ok)}
+.sync.busy .sdot{background:var(--accent);animation:blink 1s infinite}
+.sync.bad .sdot{background:var(--rec)}
+.store-box .btns{display:flex;gap:8px}
 .store-box{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:14px}
 .dlg .row{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 
@@ -202,6 +207,7 @@ dialog::backdrop{background:rgba(8,10,20,.55)}
     <div class="brand"><svg class="logo" viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="lgbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1D2547"/><stop offset="1" stop-color="#0B0F1C"/></linearGradient><linearGradient id="lgwv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF8270"/><stop offset="1" stop-color="#E23748"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#lgbg)"/><rect x="92" y="208" width="28" height="96" rx="14" fill="url(#lgwv)"/><rect x="140" y="156" width="28" height="200" rx="14" fill="url(#lgwv)"/><rect x="188" y="182" width="28" height="148" rx="14" fill="url(#lgwv)"/><rect x="236" y="224" width="28" height="64" rx="14" fill="url(#lgwv)"/><rect x="300" y="182" width="120" height="28" rx="14" fill="#EEF1FF"/><rect x="300" y="242" width="120" height="28" rx="14" fill="#EEF1FF"/><rect x="300" y="302" width="72" height="28" rx="14" fill="#8FA2FF"/></svg>Minute Taker</div>
     <div class="actions">
       <button class="btn" id="newBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>New meeting</button>
+      <button class="btn ghost sync" id="syncBtn" type="button" hidden><span class="sdot" aria-hidden="true"></span><span class="lbl">Sign in</span></button>
       <button class="btn ghost" id="setBtn" type="button" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
     </div>
   </header>
@@ -306,6 +312,10 @@ dialog::backdrop{background:rgba(8,10,20,.55)}
     </label>
     <label class="chk"><input type="checkbox" id="sAudio"><span>Save audio recordings<br><span class="hint">Turn off if live transcription stops working on your phone; some phones can't record audio and transcribe at the same time.</span></span></label>
     <label class="chk"><input type="checkbox" id="sTrans"><span>Include full transcript in PDF exports</span></label>
+    <div class="store-box" id="syncBox" hidden>
+      <div style="flex:1 1 220px;min-width:0"><strong>Sync across devices</strong><div class="hint" id="sSync"></div></div>
+      <div class="btns"><button class="btn primary" type="button" id="sSignIn">Sign in with Google</button><button class="btn" type="button" id="sSignOut" hidden>Sign out</button></div>
+    </div>
     <div class="store-box">
       <div><strong>Audio storage</strong><div class="hint" id="sStore">Checking…</div></div>
       <button class="btn danger" type="button" id="sDelAudio">Delete all audio</button>
@@ -408,7 +418,7 @@ if(!Array.isArray(meetings)) meetings = [exampleMeeting()];
 let settings = Object.assign({ apiKey:'', model:'claude-sonnet-5-5', lang: navigator.language && /^(en|es|fr|de|pt)/.test(navigator.language) ? navigator.language : 'en-US', saveAudio:true, includeTranscript:false }, store.get(LS_SET, {}));
 let current = meetings[0] || null;
 let saveT;
-function save(){ store.set(LS_KEY, meetings); }
+function save(){ store.set(LS_KEY, meetings); scheduleSync(); }
 function saveSoon(){ clearTimeout(saveT); saveT = setTimeout(() => { save(); renderLibrary(); }, 400); }
 
 /* ---------- library ---------- */
@@ -451,6 +461,7 @@ $('#delBtn').addEventListener('click', async () => {
   if(rec.active){ toast('Stop recording first.'); return; }
   if(!confirm(`Delete "${titleOf(current)}"? Its transcript, summary and audio will be removed from this device.`)) return;
   for(let i = 1; i <= (current.audioParts||0); i++){ try{ await idb.del(`${current.id}:${i}`); }catch{} }
+  if(!current.example) markDeleted(current.id);
   meetings = meetings.filter(m => m !== current);
   current = meetings[0] || null; save(); renderAll(); toast('Meeting deleted.');
 });
@@ -993,6 +1004,159 @@ dlg.addEventListener('close', () => {
   store.set(LS_SET, settings); renderSummary(); toast('Settings saved.');
 });
 
+/* ---------- cloud sync (Firebase: Google sign-in + Firestore) ---------- */
+// Paste the web app config from Firebase → Project settings → Your apps here.
+const FIREBASE_CONFIG = null;
+const FB_VER = '10.12.2';
+const sync = { fb:null, app:null, auth:null, db:null, user:null, unsub:null, ready:false, state:'off', timer:0, last:{}, pushing:false };
+const DEL_KEY = 'minutetaker.deleted.v1';
+const deletedIds = new Set(store.get(DEL_KEY, []));
+function markDeleted(id){ deletedIds.add(id); store.set(DEL_KEY, [...deletedIds]); scheduleSync(); }
+function stable(v){
+  if(Array.isArray(v)) return '[' + v.map(stable).join(',') + ']';
+  if(v && typeof v === 'object') return '{' + Object.keys(v).filter(k => v[k] !== undefined).sort().map(k => JSON.stringify(k) + ':' + stable(v[k])).join(',') + '}';
+  return JSON.stringify(v === undefined ? null : v);
+}
+function body(m){ const {audioParts, updatedAt, ...rest} = m; return stable(rest); }
+function cloudShape(m){ const {audioParts, ...rest} = m; return JSON.parse(JSON.stringify(rest)); }
+const lastKey = () => 'minutetaker.synced.' + (sync.user ? sync.user.uid : '');
+function editingMain(){ const a = document.activeElement; return !!(a && a.closest && a.closest('main') && (a.isContentEditable || a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')); }
+
+function setSync(state, detail){ sync.state = state; renderSyncUI(detail); }
+function renderSyncUI(detail){
+  if(!FIREBASE_CONFIG) return;
+  const b = $('#syncBtn'); b.hidden = false;
+  const map = { off:['Sign in',''], connecting:['Connecting','busy'], syncing:['Syncing','busy'], synced:['Synced','ok'], offline:['Offline',''], error:['Sync error','bad'] };
+  const [label, cls] = map[sync.state] || map.off;
+  b.className = 'btn ghost sync ' + cls; b.querySelector('.lbl').textContent = label;
+  b.title = detail || (sync.user ? `Signed in as ${sync.user.email}` : 'Sign in to sync meetings between devices');
+  $('#syncBox').hidden = false;
+  $('#sSignIn').hidden = !!sync.user; $('#sSignOut').hidden = !sync.user;
+  $('#sSync').textContent = sync.user
+    ? `Signed in as ${sync.user.email}. Meetings, transcripts and summaries sync to your other devices. Audio stays on the device that recorded it.`
+    : 'Sign in with Google to see the same meetings on your phone and your Mac.';
+}
+async function loadFirebase(){
+  if(sync.fb) return sync.fb;
+  const base = `https://www.gstatic.com/firebasejs/${FB_VER}/`;
+  const [app, auth, fs] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
+  sync.app = app.initializeApp(FIREBASE_CONFIG);
+  sync.auth = auth.getAuth(sync.app);
+  sync.db = fs.getFirestore(sync.app);
+  sync.fb = {auth, fs};
+  return sync.fb;
+}
+function signInMsg(e){
+  const c = (e && e.code) || '';
+  if(c === 'auth/unauthorized-domain') return 'Sign-in isn\'t allowed from this address yet. In Firebase, add it under Authentication → Settings → Authorized domains.';
+  if(c === 'auth/network-request-failed') return 'Sign-in needs an internet connection.';
+  if(c === 'auth/operation-not-allowed') return 'Google sign-in is turned off. Enable it in Firebase under Authentication → Sign-in method.';
+  return 'Sign-in didn\'t work: ' + ((e && e.message) || c || 'unknown error');
+}
+async function initSync(){
+  if(!FIREBASE_CONFIG) return;
+  setSync('connecting');
+  try{ await loadFirebase(); }catch{ setSync('error', 'Couldn\'t load sync. Check your connection and reload.'); return; }
+  const {auth} = sync.fb;
+  auth.getRedirectResult(sync.auth).catch(e => toast(signInMsg(e)));
+  auth.onAuthStateChanged(sync.auth, u => {
+    sync.user = u;
+    if(u) startListening(); else { stopListening(); setSync('off'); }
+  });
+}
+async function signIn(){
+  try{ await loadFirebase(); }catch{ toast('Couldn\'t load sign-in. Check your connection.'); return; }
+  const {auth} = sync.fb, p = new auth.GoogleAuthProvider();
+  p.setCustomParameters({prompt:'select_account'});
+  try{ await auth.signInWithPopup(sync.auth, p); }
+  catch(e){
+    if(e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment'){
+      try{ await auth.signInWithRedirect(sync.auth, p); }catch(e2){ toast(signInMsg(e2)); }
+    } else if(e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') toast(signInMsg(e));
+  }
+}
+async function signOutSync(){
+  if(rec.active){ toast('Stop recording first.'); return; }
+  try{ await sync.fb.auth.signOut(sync.auth); toast('Signed out. Your meetings stay on this device.'); }catch{}
+}
+const colRef = () => sync.fb.fs.collection(sync.db, 'users', sync.user.uid, 'meetings');
+function stopListening(){ if(sync.unsub){ sync.unsub(); sync.unsub = null; } sync.ready = false; }
+function startListening(){
+  stopListening();
+  sync.last = store.get(lastKey(), {});
+  setSync('syncing');
+  sync.unsub = sync.fb.fs.onSnapshot(colRef(), snap => {
+    let changed = false, added = false;
+    snap.docChanges().forEach(ch => {
+      if(ch.type === 'removed' || ch.doc.metadata.hasPendingWrites) return;
+      const r = applyRemote(ch.doc.id, ch.doc.data());
+      if(r) changed = true; if(r === 'added') added = true;
+    });
+    store.set(lastKey(), sync.last);
+    if(changed){
+      if(added) meetings.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      store.set(LS_KEY, meetings); refreshAfterRemote();
+    }
+    if(!sync.ready){ sync.ready = true; pushDirty(); }
+    else if(!sync.pushing) setSync('synced');
+  }, err => setSync('error', err.code === 'permission-denied' ? 'Firestore refused access. Check the security rules.' : err.message));
+}
+function applyRemote(id, d){
+  const idx = meetings.findIndex(m => m.id === id), local = meetings[idx];
+  if(d.deleted){
+    sync.last[id] = 'deleted';
+    if(!deletedIds.has(id)){ deletedIds.add(id); store.set(DEL_KEY, [...deletedIds]); }
+    if(!local || (local === current && (rec.active || editingMain()))) return false;
+    meetings.splice(idx, 1);
+    if(current === local) current = meetings[0] || null;
+    return true;
+  }
+  if(deletedIds.has(id)) return false;               // deleted here; pushDirty sends the tombstone
+  const rb = body(d);
+  if(local && body(local) === rb){ sync.last[id] = rb; if((local.updatedAt || 0) < (d.updatedAt || 0)) local.updatedAt = d.updatedAt; return false; }
+  if(local && (local.updatedAt || 0) > (d.updatedAt || 0)) return false;   // ours is newer; it will be pushed
+  if(local && local === current && (rec.active || editingMain())) return false;
+  const merged = Object.assign({}, d, {audioParts: local ? (local.audioParts || 0) : 0});
+  sync.last[id] = rb;
+  if(local){ meetings[idx] = merged; if(current === local) current = merged; return true; }
+  meetings.push(merged); if(!current) current = merged;
+  return 'added';
+}
+function refreshAfterRemote(){
+  if(rec.active || editingMain()){ renderLibrary(); return; }
+  renderAll();
+}
+function scheduleSync(){
+  if(!sync.user || !sync.ready) return;
+  clearTimeout(sync.timer); sync.timer = setTimeout(pushDirty, 1200);
+}
+async function pushDirty(){
+  if(!sync.user || !sync.ready) return;
+  const {fs} = sync.fb, jobs = [];
+  for(const m of meetings){
+    if(m.example) continue;
+    const b = body(m);
+    if(sync.last[m.id] === b) continue;
+    m.updatedAt = Date.now();
+    jobs.push(fs.setDoc(fs.doc(colRef(), m.id), cloudShape(m)).then(() => { sync.last[m.id] = b; }));
+  }
+  for(const id of deletedIds){
+    if(id === 'example' || sync.last[id] === 'deleted') continue;
+    jobs.push(fs.setDoc(fs.doc(colRef(), id), {deleted:true, updatedAt: Date.now()}).then(() => { sync.last[id] = 'deleted'; }));
+  }
+  if(!jobs.length){ setSync(navigator.onLine === false ? 'offline' : 'synced'); return; }
+  sync.pushing = true; setSync(navigator.onLine === false ? 'offline' : 'syncing');
+  store.set(LS_KEY, meetings);
+  try{ await Promise.all(jobs); setSync('synced'); }
+  catch(e){ setSync('error', e.code === 'permission-denied' ? 'Firestore refused the save. Check the security rules.' : 'Couldn\'t save to the cloud: ' + e.message); }
+  finally{ sync.pushing = false; store.set(lastKey(), sync.last); }
+}
+window.addEventListener('online', () => { if(sync.user){ setSync('syncing'); pushDirty(); } });
+window.addEventListener('offline', () => { if(sync.user) setSync('offline'); });
+$('#syncBtn').addEventListener('click', () => sync.user ? $('#setBtn').click() : signIn());
+$('#sSignIn').addEventListener('click', () => { dlg.close(); signIn(); });
+$('#sSignOut').addEventListener('click', () => { dlg.close(); signOutSync(); });
+
 /* ---------- boot ---------- */
 function renderAll(){
   const none = !current;
@@ -1004,6 +1168,7 @@ function renderAll(){
 $('#emptyNew').addEventListener('click', () => $('#newBtn').click());
 if(window.innerWidth > 900) $('#library').open = true;
 renderAll();
+initSync();
 })();
 </script>
 </body>
