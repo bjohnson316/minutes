@@ -171,6 +171,9 @@ li:hover .x,.x:focus-visible{opacity:1}
 .audio-row .lbl{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
 
 .danger{color:var(--rec)}
+.no-meeting{padding:32px 20px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;color:var(--muted)}
+.no-meeting strong{color:var(--fg);font-family:var(--f-display);font-size:20px}
+.no-meeting .btn{margin-top:6px}
 .spin{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 
@@ -210,6 +213,11 @@ dialog::backdrop{background:rgba(8,10,20,.55)}
     </details>
 
     <main>
+      <section class="card no-meeting" id="noMeeting" hidden>
+        <strong>No meetings yet</strong>
+        <span>Tap New meeting to start recording.</span>
+        <button class="btn primary" type="button" id="emptyNew">New meeting</button>
+      </section>
       <section class="card meta" aria-label="Meeting details">
         <input class="title" id="mTitle" type="text" placeholder="Untitled meeting" aria-label="Meeting title">
         <div class="meta-row">
@@ -396,9 +404,9 @@ function exampleMeeting(){
 }
 
 let meetings = store.get(LS_KEY, null);
-if(!Array.isArray(meetings) || !meetings.length) meetings = [exampleMeeting()];
+if(!Array.isArray(meetings)) meetings = [exampleMeeting()];
 let settings = Object.assign({ apiKey:'', model:'claude-sonnet-5-5', lang: navigator.language && /^(en|es|fr|de|pt)/.test(navigator.language) ? navigator.language : 'en-US', saveAudio:true, includeTranscript:false }, store.get(LS_SET, {}));
-let current = meetings[0];
+let current = meetings[0] || null;
 let saveT;
 function save(){ store.set(LS_KEY, meetings); }
 function saveSoon(){ clearTimeout(saveT); saveT = setTimeout(() => { save(); renderLibrary(); }, 400); }
@@ -444,8 +452,7 @@ $('#delBtn').addEventListener('click', async () => {
   if(!confirm(`Delete "${titleOf(current)}"? Its transcript, summary and audio will be removed from this device.`)) return;
   for(let i = 1; i <= (current.audioParts||0); i++){ try{ await idb.del(`${current.id}:${i}`); }catch{} }
   meetings = meetings.filter(m => m !== current);
-  if(!meetings.length) meetings.push(blankMeeting());
-  current = meetings[0]; save(); renderAll(); toast('Meeting deleted.');
+  current = meetings[0] || null; save(); renderAll(); toast('Meeting deleted.');
 });
 
 /* ---------- transcript ---------- */
@@ -564,13 +571,14 @@ function updateRecUI(){
   $('#pauseBtn').textContent = rec.paused ? 'Resume' : 'Pause';
   const st = $('#recState');
   st.className = 'state' + (rec.active && !rec.paused ? ' live' : '');
-  st.textContent = !rec.active ? (current.segments.length ? 'Stopped' : 'Ready') : rec.paused ? 'Paused' : 'Recording';
+  st.textContent = !rec.active ? (current && current.segments.length ? 'Stopped' : 'Ready') : rec.paused ? 'Paused' : 'Recording';
   renderLibrary();
 }
 
 async function startRecording(){
   if(rec.active) return;
-  if(current.example){ const m = blankMeeting(); meetings.unshift(m); current = m; save(); renderAll(); }
+  if(!current) return;
+  if(current.example){ toast('This is an example. Tap New meeting to record your own.'); return; }
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ setStatus('This browser can\'t use the microphone. Open the app over https in Chrome, Edge or Safari.', 'err'); return; }
   try{ rec.stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true}}); }
   catch(e){ setStatus(e && e.name === 'NotAllowedError' ? 'Microphone access was blocked. Allow the microphone for this site in your browser settings, then try again.' : 'Couldn\'t open the microphone: ' + (e.message || e), 'err'); return; }
@@ -986,7 +994,14 @@ dlg.addEventListener('close', () => {
 });
 
 /* ---------- boot ---------- */
-function renderAll(){ renderLibrary(); renderMeta(); renderTranscript(); renderSummary(); renderAudio(); updateRecUI(); renderClock(); setStatus(current.example ? 'This is an example meeting. Press the red button to start a new recording.' : ''); drawMeter(); }
+function renderAll(){
+  const none = !current;
+  $('#noMeeting').hidden = !none;
+  document.querySelectorAll('main > :not(#noMeeting)').forEach(e => e.hidden = none);
+  renderLibrary();
+  if(none){ updateRecUI(); return; }
+  renderMeta(); renderTranscript(); renderSummary(); renderAudio(); updateRecUI(); renderClock(); setStatus(current.example ? 'This is an example meeting. Tap New meeting to record your own.' : ''); drawMeter(); }
+$('#emptyNew').addEventListener('click', () => $('#newBtn').click());
 if(window.innerWidth > 900) $('#library').open = true;
 renderAll();
 })();
