@@ -1006,7 +1006,14 @@ dlg.addEventListener('close', () => {
 
 /* ---------- cloud sync (Firebase: Google sign-in + Firestore) ---------- */
 // Paste the web app config from Firebase → Project settings → Your apps here.
-const FIREBASE_CONFIG = null;
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD3mBmkx7RkEnGnxYUnOKJvUGuMg2JkQO0",
+  authDomain: "minutes-d6536.firebaseapp.com",
+  projectId: "minutes-d6536",
+  storageBucket: "minutes-d6536.firebasestorage.app",
+  messagingSenderId: "318654920831",
+  appId: "1:318654920831:web:9e2118b3932c198098274a"
+};
 const FB_VER = '10.12.2';
 const sync = { fb:null, app:null, auth:null, db:null, user:null, unsub:null, ready:false, state:'off', timer:0, last:{}, pushing:false };
 const DEL_KEY = 'minutetaker.deleted.v1';
