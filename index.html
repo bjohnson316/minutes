@@ -42,6 +42,7 @@
   --rec:#FF5C61; --rec-soft:#3A1C22; --ok:#4FC690; --warn:#E3B05A; color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -195,6 +196,14 @@ dialog::backdrop{background:rgba(8,10,20,.55)}
 .store-box{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:14px}
 .dlg .row{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 
+.gate{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.gate-card{width:min(380px,100%);display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:36px 24px 30px}
+.gate-logo{width:84px;height:84px;border-radius:20px;box-shadow:0 8px 24px rgba(10,14,30,.25)}
+.gate h1{margin:4px 0 0;font-family:var(--f-display);font-size:26px;font-weight:800;letter-spacing:-.02em}
+.gate p{margin:0;color:var(--muted);max-width:30ch;text-wrap:balance}
+.gate p.err{color:var(--rec)}
+.gate-btn{width:100%;justify-content:center;padding:12px 16px;font-size:15px;margin-top:6px}
+.gate-btn svg{width:18px;height:18px;background:#fff;border-radius:50%;padding:2px;box-sizing:content-box}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:all .25s;max-width:calc(100vw - 32px);z-index:50}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
@@ -202,7 +211,16 @@ dialog::backdrop{background:rgba(8,10,20,.55)}
 </style>
 </head>
 <body>
-<div class="app">
+<section class="gate" id="gate">
+  <div class="gate-card">
+    <svg class="gate-logo" viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="gtbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1D2547"/><stop offset="1" stop-color="#0B0F1C"/></linearGradient><linearGradient id="gtwv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF8270"/><stop offset="1" stop-color="#E23748"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#gtbg)"/><rect x="92" y="208" width="28" height="96" rx="14" fill="url(#gtwv)"/><rect x="140" y="156" width="28" height="200" rx="14" fill="url(#gtwv)"/><rect x="188" y="182" width="28" height="148" rx="14" fill="url(#gtwv)"/><rect x="236" y="224" width="28" height="64" rx="14" fill="url(#gtwv)"/><rect x="300" y="182" width="120" height="28" rx="14" fill="#EEF1FF"/><rect x="300" y="242" width="120" height="28" rx="14" fill="#EEF1FF"/><rect x="300" y="302" width="72" height="28" rx="14" fill="#8FA2FF"/></svg>
+    <h1>Minute Taker</h1>
+    <p id="gateMsg">Checking sign-in…</p>
+    <button class="btn primary gate-btn" id="gateBtn" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9h-4v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.7V6.6h-4a12 12 0 0 0 0 10.8z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.3.6 4.5 1.8l3.4-3.4A12 12 0 0 0 1.4 6.6l4 3.1C6.3 6.9 8.9 4.8 12 4.8z"/></svg>Sign in with Google</button>
+    <button class="btn" id="gateOffline" type="button" hidden>Continue offline</button>
+  </div>
+</section>
+<div class="app" id="app" hidden>
   <header class="top">
     <div class="brand"><svg class="logo" viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="lgbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1D2547"/><stop offset="1" stop-color="#0B0F1C"/></linearGradient><linearGradient id="lgwv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF8270"/><stop offset="1" stop-color="#E23748"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#lgbg)"/><rect x="92" y="208" width="28" height="96" rx="14" fill="url(#lgwv)"/><rect x="140" y="156" width="28" height="200" rx="14" fill="url(#lgwv)"/><rect x="188" y="182" width="28" height="148" rx="14" fill="url(#lgwv)"/><rect x="236" y="224" width="28" height="64" rx="14" fill="url(#lgwv)"/><rect x="300" y="182" width="120" height="28" rx="14" fill="#EEF1FF"/><rect x="300" y="242" width="120" height="28" rx="14" fill="#EEF1FF"/><rect x="300" y="302" width="72" height="28" rx="14" fill="#8FA2FF"/></svg>Minute Taker</div>
     <div class="actions">
@@ -413,12 +431,14 @@ function exampleMeeting(){
   };
 }
 
-let meetings = store.get(LS_KEY, null);
-if(!Array.isArray(meetings)) meetings = [exampleMeeting()];
+let meetings = [];
+let acct = '';
+const meetKey = () => LS_KEY + (acct ? '.' + acct : '');
 let settings = Object.assign({ apiKey:'', model:'claude-sonnet-5-5', lang: navigator.language && /^(en|es|fr|de|pt)/.test(navigator.language) ? navigator.language : 'en-US', saveAudio:true, includeTranscript:false }, store.get(LS_SET, {}));
 let current = meetings[0] || null;
 let saveT;
-function save(){ store.set(LS_KEY, meetings); scheduleSync(); }
+function storeMeetings(){ store.set(meetKey(), meetings); }
+function save(){ storeMeetings(); scheduleSync(); }
 function saveSoon(){ clearTimeout(saveT); saveT = setTimeout(() => { save(); renderLibrary(); }, 400); }
 
 /* ---------- library ---------- */
@@ -1017,8 +1037,9 @@ const FIREBASE_CONFIG = {
 const FB_VER = '10.12.2';
 const sync = { fb:null, app:null, auth:null, db:null, user:null, unsub:null, ready:false, state:'off', timer:0, last:{}, pushing:false };
 const DEL_KEY = 'minutetaker.deleted.v1';
-const deletedIds = new Set(store.get(DEL_KEY, []));
-function markDeleted(id){ deletedIds.add(id); store.set(DEL_KEY, [...deletedIds]); scheduleSync(); }
+const delKey = () => DEL_KEY + (acct ? '.' + acct : '');
+let deletedIds = new Set();
+function markDeleted(id){ deletedIds.add(id); store.set(delKey(), [...deletedIds]); scheduleSync(); }
 function stable(v){
   if(Array.isArray(v)) return '[' + v.map(stable).join(',') + ']';
   if(v && typeof v === 'object') return '{' + Object.keys(v).filter(k => v[k] !== undefined).sort().map(k => JSON.stringify(k) + ':' + stable(v[k])).join(',') + '}';
@@ -1038,10 +1059,10 @@ function renderSyncUI(detail){
   b.className = 'btn ghost sync ' + cls; b.querySelector('.lbl').textContent = label;
   b.title = detail || (sync.user ? `Signed in as ${sync.user.email}` : 'Sign in to sync meetings between devices');
   $('#syncBox').hidden = false;
-  $('#sSignIn').hidden = !!sync.user; $('#sSignOut').hidden = !sync.user;
+  $('#sSignIn').hidden = true; $('#sSignOut').hidden = !sync.user;
   $('#sSync').textContent = sync.user
     ? `Signed in as ${sync.user.email}. Meetings, transcripts and summaries sync to your other devices. Audio stays on the device that recorded it.`
-    : 'Sign in with Google to see the same meetings on your phone and your Mac.';
+    : 'Offline. Changes stay on this device until you\'re back online.';
 }
 async function loadFirebase(){
   if(sync.fb) return sync.fb;
@@ -1063,28 +1084,67 @@ function signInMsg(e){
 async function initSync(){
   if(!FIREBASE_CONFIG) return;
   setSync('connecting');
-  try{ await loadFirebase(); }catch{ setSync('error', 'Couldn\'t load sync. Check your connection and reload.'); return; }
+  try{ await loadFirebase(); }catch{ showGate('Couldn\'t reach sign-in. Check your internet connection and try again.', true, true); return; }
   const {auth} = sync.fb;
-  auth.getRedirectResult(sync.auth).catch(e => toast(signInMsg(e)));
+  auth.getRedirectResult(sync.auth).catch(e => showGate(signInMsg(e), true));
   auth.onAuthStateChanged(sync.auth, u => {
+    if(u && sync.user && u.uid === sync.user.uid) return;
     sync.user = u;
-    if(u) startListening(); else { stopListening(); setSync('off'); }
+    if(u){ if(u.uid !== acct) openAccount(u.uid); startListening(); }
+    else { stopListening(); closeAccount(); setSync('off'); }
   });
 }
+const LAST_UID = 'minutetaker.lastUid.v1';
+function openAccount(uid){
+  acct = uid;
+  try{ localStorage.setItem(LAST_UID, uid); }catch{}
+  let list = store.get(meetKey(), null);
+  if(!Array.isArray(list)){
+    // First sign-in on this device: bring over meetings made before sign-in was required.
+    const legacy = store.get(LS_KEY, null);
+    list = Array.isArray(legacy) ? legacy.filter(m => !m.example) : [];
+    try{ localStorage.removeItem(LS_KEY); }catch{}
+    store.set(meetKey(), list);
+  }
+  meetings = list; current = meetings[0] || null;
+  deletedIds = new Set(store.get(delKey(), []));
+  $('#gate').hidden = true; $('#app').hidden = false;
+  if(window.innerWidth > 900) $('#library').open = true;
+  renderAll();
+}
+function closeAccount(){
+  if(rec.active) stopRecording();
+  acct = ''; meetings = []; current = null; deletedIds = new Set();
+  $('#app').hidden = true; $('#gate').hidden = false;
+  if(dlg.open) dlg.close();
+  showGate('Sign in to see your meetings.');
+}
+function showGate(msg, err = false, offline = false){
+  const m = $('#gateMsg'); m.textContent = msg; m.className = err ? 'err' : '';
+  $('#gateBtn').hidden = false;
+  let last = ''; try{ last = localStorage.getItem(LAST_UID) || ''; }catch{}
+  $('#gateOffline').hidden = !(offline && last);
+}
 async function signIn(){
-  try{ await loadFirebase(); }catch{ toast('Couldn\'t load sign-in. Check your connection.'); return; }
+  if(!sync.fb){
+    $('#gateMsg').textContent = 'Connecting…';
+    try{ await loadFirebase(); }catch{ showGate('Couldn\'t reach sign-in. Check your internet connection and try again.', true, true); return; }
+    initSync(); return;
+  }
   const {auth} = sync.fb, p = new auth.GoogleAuthProvider();
   p.setCustomParameters({prompt:'select_account'});
   try{ await auth.signInWithPopup(sync.auth, p); }
   catch(e){
     if(e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment'){
       try{ await auth.signInWithRedirect(sync.auth, p); }catch(e2){ toast(signInMsg(e2)); }
-    } else if(e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') toast(signInMsg(e));
+    } else if(e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') showGate(signInMsg(e), true, e.code === 'auth/network-request-failed');
   }
 }
 async function signOutSync(){
   if(rec.active){ toast('Stop recording first.'); return; }
-  try{ await sync.fb.auth.signOut(sync.auth); toast('Signed out. Your meetings stay on this device.'); }catch{}
+  if(!confirm('Sign out? You\'ll need to sign in again to open your meetings on this device.')) return;
+  try{ localStorage.removeItem(LAST_UID); }catch{}
+  try{ await sync.fb.auth.signOut(sync.auth); }catch{ toast('Couldn\'t sign out. Try again.'); }
 }
 const colRef = () => sync.fb.fs.collection(sync.db, 'users', sync.user.uid, 'meetings');
 function stopListening(){ if(sync.unsub){ sync.unsub(); sync.unsub = null; } sync.ready = false; }
@@ -1102,7 +1162,7 @@ function startListening(){
     store.set(lastKey(), sync.last);
     if(changed){
       if(added) meetings.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-      store.set(LS_KEY, meetings); refreshAfterRemote();
+      storeMeetings(); refreshAfterRemote();
     }
     if(!sync.ready){ sync.ready = true; pushDirty(); }
     else if(!sync.pushing) setSync('synced');
@@ -1112,7 +1172,7 @@ function applyRemote(id, d){
   const idx = meetings.findIndex(m => m.id === id), local = meetings[idx];
   if(d.deleted){
     sync.last[id] = 'deleted';
-    if(!deletedIds.has(id)){ deletedIds.add(id); store.set(DEL_KEY, [...deletedIds]); }
+    if(!deletedIds.has(id)){ deletedIds.add(id); store.set(delKey(), [...deletedIds]); }
     if(!local || (local === current && (rec.active || editingMain()))) return false;
     meetings.splice(idx, 1);
     if(current === local) current = meetings[0] || null;
@@ -1153,14 +1213,21 @@ async function pushDirty(){
   }
   if(!jobs.length){ setSync(navigator.onLine === false ? 'offline' : 'synced'); return; }
   sync.pushing = true; setSync(navigator.onLine === false ? 'offline' : 'syncing');
-  store.set(LS_KEY, meetings);
+  storeMeetings();
   try{ await Promise.all(jobs); setSync('synced'); }
   catch(e){ setSync('error', e.code === 'permission-denied' ? 'Firestore refused the save. Check the security rules.' : 'Couldn\'t save to the cloud: ' + e.message); }
   finally{ sync.pushing = false; store.set(lastKey(), sync.last); }
 }
-window.addEventListener('online', () => { if(sync.user){ setSync('syncing'); pushDirty(); } });
+window.addEventListener('online', () => { if(sync.user){ setSync('syncing'); pushDirty(); } else if(!sync.fb && acct) initSync(); });
 window.addEventListener('offline', () => { if(sync.user) setSync('offline'); });
-$('#syncBtn').addEventListener('click', () => sync.user ? $('#setBtn').click() : signIn());
+$('#syncBtn').addEventListener('click', () => $('#setBtn').click());
+$('#gateBtn').addEventListener('click', signIn);
+$('#gateOffline').addEventListener('click', () => {
+  let last = ''; try{ last = localStorage.getItem(LAST_UID) || ''; }catch{}
+  if(!last) return;
+  openAccount(last); setSync('offline', 'Offline. Changes save on this device and sync when you sign in online.');
+  $('#syncBtn').hidden = false;
+});
 $('#sSignIn').addEventListener('click', () => { dlg.close(); signIn(); });
 $('#sSignOut').addEventListener('click', () => { dlg.close(); signOutSync(); });
 
@@ -1173,9 +1240,13 @@ function renderAll(){
   if(none){ updateRecUI(); return; }
   renderMeta(); renderTranscript(); renderSummary(); renderAudio(); updateRecUI(); renderClock(); setStatus(current.example ? 'This is an example meeting. Tap New meeting to record your own.' : ''); drawMeter(); }
 $('#emptyNew').addEventListener('click', () => $('#newBtn').click());
-if(window.innerWidth > 900) $('#library').open = true;
-renderAll();
-initSync();
+if(FIREBASE_CONFIG) initSync();
+else {
+  meetings = store.get(LS_KEY, null) || [exampleMeeting()]; current = meetings[0] || null;
+  $('#gate').hidden = true; $('#app').hidden = false;
+  if(window.innerWidth > 900) $('#library').open = true;
+  renderAll();
+}
 })();
 </script>
 </body>
